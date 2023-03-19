@@ -1,0 +1,9 @@
+# created by virtualenv automatically
+Lib
+Scripts
+pyvenv.cfg
+share
+dist
+build
+*.exe
+*.dll

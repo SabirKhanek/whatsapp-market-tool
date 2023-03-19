@@ -1,0 +1,9 @@
+node_modules
+.wwebjs_auth
+.env
+db/intents.sqlite
+db/products*.xlsx
+db/potential_buysell_*.xlsx
+puppeteer
+dist
+intent-classifier/intent-classifier.exe
