@@ -7,3 +7,4 @@ db/potential_buysell_*.xlsx
 puppeteer
 dist
 intent-classifier/intent-classifier.exe
+test_storage

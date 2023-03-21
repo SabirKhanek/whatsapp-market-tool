@@ -6,7 +6,7 @@ const data_schema = {
             "type": "smartphone",
             "variants": [
                 {
-                    "name": "256 GB",
+                    "name": "14 Pro Max",
                     "quantity": "100",
                     "condition": "Used/New/A++",
                     "brand": "Apple",
@@ -16,7 +16,7 @@ const data_schema = {
                         "Red"
                     ],
                     "price": "price$",
-                    "remarks": "Ready To Ship"
+                    "remarks": "Unlocked 256GB shipped to USA"
                 }
             ]
         }

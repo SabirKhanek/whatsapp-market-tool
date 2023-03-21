@@ -8,14 +8,14 @@ if (!process.env.openai_key) {
 
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const { TimeFilter, updateFilter } = require('./src/config');
+const { TimeFilter, newMessageInterval } = require('./src/config');
 const { getIntents } = require('./src/utils/intents')
 const fs = require('fs');
 
 const client = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth({ dataPath: dataPath = (process.env.storage_mount && fs.existsSync(process.env.storage_mount)) ? process.env.storage_mount + '/wweb-session' : undefined }),
     puppeteer: {
-        executablePath: './puppeteer/win64-982053/chrome-win/chrome.exe',
+        executablePath: process.env.deployment && process.env.deployment === 'server' ? undefined : './puppeteer/win64-982053/chrome-win/chrome.exe',
         args: ['--no-sandbox', "--disable-setuid-sandbox"]
     }
 });
@@ -23,7 +23,7 @@ const client = new Client({
 
 // assign client to chat actions performer script
 const { setClient, getMessages: getMessages, getMessageObj, getBatchClassifiedMessages } = require('./src/utils/chats');
-const { saveIntents } = require('./db/dbhandler');
+const { saveIntents, newMessages } = require('./db/dbhandler');
 setClient(client)
 const { getExcelPath, getPotentialPairsPath } = require('./db/query2xl')
 
@@ -32,13 +32,12 @@ const { getExcelPath, getPotentialPairsPath } = require('./db/query2xl')
 var intentMutex = false
 
 // New Messages temporary storage for barch intent generation
-var newMessages = []
-
 async function generateNewMsgIntents() {
-    if (newMessages.length <= 0) return
+    const messages = newMessages.get()
+    if (newMessages.get().length <= 0) return
 
-    const currentMessages = [...newMessages]
-    newMessages = []
+    const currentMessages = [...messages]
+    newMessages.delete()
     const msgs = await getBatchClassifiedMessages(currentMessages)
 
     if (msgs.length <= 0) return
@@ -48,7 +47,12 @@ async function generateNewMsgIntents() {
     })
 }
 
-setInterval(generateNewMsgIntents, 1000 * 60 * 30) // 30 minutes
+var newMessageCronJon = setInterval(generateNewMsgIntents, newMessageInterval.getTime() * 1000) // 30 minutes
+
+function modifyInterval() {
+    clearInterval(newMessageCronJon)
+    newMessageCronJon = setInterval(generateNewMsgIntents, newMessageInterval.getTime() * 1000)
+}
 
 
 client.on('qr', (qr) => {
@@ -66,10 +70,7 @@ client.on('message', async (message) => {
         if (!message.body.includes('%%')) {
             const msg = await getMessageObj(message)
             if (!msg) return
-            newMessages.push(msg)
-            // const intent = await getIntents(msg)
-            // if (!intent) return
-            // saveIntents(intent)
+            newMessages.save(msg)
             return
         }
 
@@ -95,7 +96,7 @@ client.on('message', async (message) => {
         // Commands
 
         if (message.body === '%%help') {
-            const messageSent = await client.sendMessage(message.from, `Commands:\n- %%make_me_admin: make the sender as admin\n- %%time_filter: Update the timeframe for messages extraction\n- %%get_summary: List number of messages after applied filter\n- %%get_products: Send the excel file of intents generation summary to the admin\n- %%get_pairs: Generate excel file with buy and sell pairs e.g., %%get_pairs\n- %%generate_intents`)
+            const messageSent = await client.sendMessage(message.from, `Commands:\n- %%make_me_admin: make the sender as admin\n- %%time_filter: Update the timeframe for messages extraction\n- %%get_summary: List number of messages after applied filter\n- %%get_products: Send the excel file of intents generation summary to the admin\n- %%get_pairs: Generate excel file with buy and sell pairs e.g., %%get_pairs\n- %%generate_intents\n- %%update_new_messages_interval: Update the interval for new messages intent generation\n- %%check: Check if the bot is working`)
             await messageSent.delete()
             return;
         }
@@ -104,11 +105,30 @@ client.on('message', async (message) => {
             const time = message.body.split(' ')[1]
 
             if (!time) {
-                client.sendMessage(message.from, `Current time filter is (${TimeFilter} seconds) Please provide the time in seconds.`)
+                client.sendMessage(message.from, `Current time filter is (${TimeFilter.getTime()} seconds) Please provide the time in seconds.`)
                 return;
             }
-            updateFilter(time)
-            client.sendMessage(message.from, 'Time filter has been updated to: ' + TimeFilter)
+            TimeFilter.setTime(time)
+            client.sendMessage(message.from, 'Time filter has been updated to: ' + TimeFilter.getTime())
+            return;
+        }
+
+
+        if (message.body.startsWith('%%new_messages_interval')) {
+            const time = message.body.split(' ')[1]
+
+            if (!time) {
+                client.sendMessage(message.from, `Current time filter is (${newMessageInterval.getTime()} seconds) Please provide the time in seconds.`)
+                return;
+            }
+            // if (time <= 15 * 60) {
+            //     client.sendMessage(message.from, `Minimum interval is 15 minutes. Current time filter is (${newMessageInterval.getTime()} seconds)`)
+            //     return;
+            // }
+
+            newMessageInterval.setTime(time)
+            modifyInterval()
+            client.sendMessage(message.from, 'Time filter has been updated to: ' + newMessageInterval.getTime() + ' seconds')
             return;
         }
 
@@ -116,7 +136,7 @@ client.on('message', async (message) => {
         if (message.body === '%%get_summary') {
             await message.delete()
             const messages = await getMessages()
-            const messageSent = await client.sendMessage(message.from, `Filters:\n- last (${TimeFilter} seconds)\n- Exclude already saved messages\nMessage: ${messages.length}`)
+            const messageSent = await client.sendMessage(message.from, `Filters:\n- last (${TimeFilter.getTime()} seconds)\n- Exclude already saved messages\nMessage: ${messages.length}`)
             await messageSent.delete()
             return
         }
@@ -175,5 +195,12 @@ client.on('ready', async () => {
     console.log('Bot phone #: ' + client.info.wid._serialized)
     console.log(("Wait some time for the client to load all the chats."))
 });
+
+
+client.on('disconnected', async (reason) => {
+    console.log('Client was logged out', reason);
+    await client.destroy();
+    client.initialize();
+})
 
 client.initialize()

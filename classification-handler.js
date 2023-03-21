@@ -22,7 +22,12 @@ async function get_classification(messages) {
     await fs.promises.writeFile(payloadPath, data, { flag: 'w', encoding: 'utf8' });
 
     // Asynchronously spawn the child process
-    const spawned = spawn('intent-classifier', ['predict', '.' + payloadFileName], { cwd: classifierPath });
+    let spawned;
+    if (process.env.deployment && process.env.deployment === 'server') {
+        spawned = spawn('python', ['intent-classifier.py', 'predict', '.' + payloadFileName], { cwd: classifierPath });
+    } else {
+        spawned = spawn('intent-classifier', ['predict', '.' + payloadFileName], { cwd: classifierPath });
+    }
 
     var subprocess = spawned.childProcess;
 

@@ -22,4 +22,15 @@ async function extractIntent(request) {
     }
 }
 
+// extractIntent(`WTS:
+
+// iPhone 8 64gb A1905
+// Condition: Tested Unlocked
+// Grade: A/B/C
+// Colors: Mix
+// Quantity: 500
+
+// PM for details`).then((res) => console.log(res)).catch((err) => console.log(err.message))
+
+
 module.exports = extractIntent;

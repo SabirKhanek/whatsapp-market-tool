@@ -2,7 +2,6 @@ const { db } = require('./db');
 const ExcelJS = require('exceljs');
 let { TimeFilter } = require('../src/config');
 
-
 function generateProductData(time_filter) {
     const query = `
         SELECT 
@@ -44,7 +43,7 @@ function generateProductData(time_filter) {
     return data
 }
 
-async function generateProductExcel(time_filter = TimeFilter) {
+async function generateProductExcel(time_filter = TimeFilter.getTime()) {
     const data = generateProductData(time_filter);
 
     const workbook = new ExcelJS.Workbook();
@@ -192,6 +191,7 @@ function generatePotentialPairsData(time_filter) {
     AND similarity(bv.brand, sv.brand) >= 0.5
     AND bc.chatMessageTime >= ?
     AND sc.chatMessageTime >= ?
+    ORDER BY name_similarity DESC;
     `
     let timeFrom = (new Date().getTime()) / 1000;
     timeFrom = timeFrom - (time_filter ? time_filter : timeFrom);

@@ -64,11 +64,26 @@ function updateEnvFile() {
 }
 
 async function config() {
-    const answers = await inquirer.prompt(prompts)
-    Object.keys(answers).forEach((variable) => {
-        req_vars[variable].value = answers[variable];
-    });
-    updateEnvFile()
+    if (process.env.deployment && process.env.deployment === "server") {
+        if (!process.env.openai_key) {
+            console.log('OpenAI key is required for deployment.')
+            process.exit(1)
+        }
+
+        try {
+            isApiKeyValid = await checkOpenAIKey(process.env.openai_key)
+        } catch (err) {
+            console.log(err.message)
+            console.log('OpenAI api error')
+            process.exit(1)
+        }
+    } else {
+        const answers = await inquirer.prompt(prompts)
+        Object.keys(answers).forEach((variable) => {
+            req_vars[variable].value = answers[variable];
+        });
+        updateEnvFile()
+    }
 }
 
 module.exports.config = config

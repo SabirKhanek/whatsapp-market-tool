@@ -10,16 +10,6 @@ function setClient(_client) {
 }
 
 async function getMessageObj(message) {
-    // if (message.body.length <= 20) return
-    // try {
-    //     const classification = await get_classification([message.body])
-    //     if (classification[message.body] !== 'Buy' || classification[message.body] !== 'Sell') {
-    //         return
-    //     }
-    // } catch (err) {
-    //     console.log(err)
-    //     return
-    // }
     if (message.fromMe || ifMessageExist(message.id._serialized, message.body) || !(message.body.length > 10)) {
         return
     }
@@ -62,7 +52,7 @@ async function getMessages() {
     const chats = await client.getChats();
     await forEach(chats, async (chat) => {
         let timeFrom = (new Date().getTime()) / 1000;
-        timeFrom = timeFrom - (TimeFilter ? TimeFilter : 3600)
+        timeFrom = timeFrom - (TimeFilter.getTime() ? TimeFilter.getTime() : 3600)
 
         // get messages from chat
         var chatMessages = (await chat.fetchMessages(fromMe = false, limit = chat.isGroup ? 1000 : 1000)).filter(message => message.timestamp > timeFrom && !message.fromMe && !ifMessageExist(message.id._serialized, message.body) && message.body.length > 10).map(message => {

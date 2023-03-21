@@ -9,6 +9,7 @@ const { registerMessageInDB, ifMessageExist } = require('../../db/dbhandler')
 async function getIntents(messages) {
     const RETRY_LIMIT = 3;
     const intents = []
+    const messagesProcessed = []
     const totalMessages = messages.length;
     let processedMessages = 0;
     const progressBar = new ProgressBar('Processing messages [:bar] :current/:total at :rate/s  :elapsed s', {
@@ -28,8 +29,12 @@ async function getIntents(messages) {
 
     await forEach(messages, async (message) => {
         // Register the message in DB so same message don't get available.
-        registerMessageInDB(message.id)
+        messagesProcessed.push(message.id)
         if (ifMessageExist(message.id, message.chatMessage)) {
+            progressBarIncrement();
+            return;
+        }
+        if (message.chatMessage.length < 10) {
             progressBarIncrement();
             return;
         }
@@ -40,11 +45,14 @@ async function getIntents(messages) {
             const resp = await extractIntent(message.chatMessage)
             if (resp.includes('SERVER_ERROR')) {
                 if (resp.includes('429')) {
-                    progressBar.interrupt('AI requests/min limit reached. Waiting for 20s (Consider upgrading your account to avoid this error in future)')
-                    await new Promise(resolve => setTimeout(resolve, 20000));
+                    progressBar.interrupt('AI requests/min limit reached (Consider upgrading your account to avoid this error in future)')
+                    const randomWait = Math.floor(Math.random() * 10000) + 5000; // Generates a random number between 5000 and 15000 (in milliseconds)
+                    await new Promise(resolve => setTimeout(resolve, randomWait));
                 }
                 continue;
             }
+            // console.log(message.chatMessage)
+            // console.log(resp)
             if (resp.includes('CODE400')) {
                 progressBarIncrement()
                 break;
@@ -80,25 +88,33 @@ async function getIntents(messages) {
 
     // Cleaning Product Types
     const prodTypes = []
-    intents.forEach((intent) => {
-        intent.products.forEach((product) => {
-            if (prodTypes.includes(product.type)) return
-            else prodTypes.push(product.type.toLowerCase())
+    if (intents.length > 1) {
+        intents.forEach((intent) => {
+            intent.products.forEach((product) => {
+                if (prodTypes.includes(product.type)) return
+                else prodTypes.push(product.type.toLowerCase())
+            })
         })
-    })
 
-    const prodTypesMapping = await getGeneralPrdTypeMapping(JSON.stringify(prodTypes));
+        const prodTypesMapping = await getGeneralPrdTypeMapping(JSON.stringify(prodTypes));
 
-    intents.forEach((intent) => {
-        intent.products.forEach((product) => {
-            if (Object.keys(prodTypesMapping).includes(product.type.toLowerCase())) {
-                product.type = prodTypesMapping[product.type.toLowerCase()].toLowerCase()
-            }
+        intents.forEach((intent) => {
+            intent.products.forEach((product) => {
+                if (Object.keys(prodTypesMapping).includes(product.type.toLowerCase())) {
+                    product.type = prodTypesMapping[product.type.toLowerCase()].toLowerCase()
+                }
+            })
         })
-    })
+    }
     // // End Cleaning
-
-
+    // // Register the messages in DB
+    messagesProcessed.forEach((message) => {
+        try {
+            registerMessageInDB(message)
+        } catch (err) {
+            console.log('Error in registering message in DB', err)
+        }
+    })
     return intents
 }
 

@@ -2,53 +2,15 @@ const { db } = require('./db')
 const path = require('path');
 const _ = require('lodash');
 
-// Read the SQL script from the file
-const tableCreateScript = `CREATE TABLE IF NOT EXISTS Chat(
-    id TEXT PRIMARY KEY,
-    chatId TEXT NOT NULL,
-    chatName TEXT NOT NULL,
-    chatMessage TEXT NOT NULL,
-    chatType TEXT NOT NULL,
-    chatMessageAuthor TEXT NOT NULL,
-    chatMessageTime TEXT NOT NULL
-) WITHOUT ROWID;
-CREATE TABLE IF NOT EXISTS Product (
-    intent TEXT NOT NULL,
-    prd_id INTEGER PRIMARY KEY,
-    chatId TEXT NOT NULL,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL,
-    FOREIGN KEY (chatId) REFERENCES Chat(id)
-);
-CREATE TABLE IF NOT EXISTS Variant (
-    variant_id INTEGER PRIMARY KEY,
-    prd_id INTEGER NOT NULL,
-    name TEXT DEFAULT '-',
-    quantity TEXT DEFAULT '-',
-    condition TEXT DEFAULT '-',
-    brand TEXT DEFAULT '-',
-    price TEXT DEFAULT '-',
-    remarks TEXT DEFAULT '-',
-    FOREIGN KEY (prd_id) REFERENCES Product(prd_id)
-);
-CREATE TABLE IF NOT EXISTS Tag (
-    tag_id INTEGER PRIMARY KEY,
-    tag_name TEXT UNIQUE
-);
-CREATE TABLE IF NOT EXISTS TagVariant (
-    variant_id INTEGER NOT NULL,
-    tag_id INTEGER NOT NULL,
-    FOREIGN KEY (variant_id) REFERENCES Variant(variant_id),
-    FOREIGN KEY (tag_id) REFERENCES Tag(tag_id),
-    PRIMARY KEY (variant_id, tag_id)
-);
-CREATE TABLE IF NOT EXISTS PROCESSED_MESSAGES (message_id TEXT NOT NULL)`
-
-db.exec(tableCreateScript);
-
 // QUERY TO CHECK IF CHAT EXISTS (WILL BE USED LATER)
 const queryGetMessageId = db.prepare(`SELECT id FROM chat WHERE id = ? or chatMessage = ?`);
 // END
+
+const queryInsertIntoNewMessages = db.prepare(`INSERT INTO NEW_MESSAGES (message_body) VALUES (?)`)
+
+const queryGetNewMessages = db.prepare(`SELECT * FROM NEW_MESSAGES`);
+
+const queryDeleteNewMessages = db.prepare(`DELETE FROM NEW_MESSAGES`);
 
 const queryInsertChat = db.prepare(`INSERT INTO chat (id ,chatId, chatName, chatType, chatMessage, chatMessageAuthor, chatMessageTime) VALUES (?,?, ?, ?, ?, ?, ?)`);
 
@@ -153,6 +115,21 @@ function saveIntents(intents) {
 function registerMessageInDB(msg_id) {
     return queryInsertProcessedMessage.run(msg_id)
 }
+
+function deleteNewMessages() {
+    queryDeleteNewMessages.run()
+}
+
+function getNewMessages() {
+    const messages = queryGetNewMessages.all().map(message => JSON.parse(message.message_body));
+    return messages;
+}
+
+function saveNewMessage(message) {
+    queryInsertIntoNewMessages.run(JSON.stringify(message))
+}
+
+module.exports.newMessages = { get: getNewMessages, save: saveNewMessage, delete: deleteNewMessages }
 
 // intents = [
 //     {
