@@ -12,18 +12,27 @@ async function getIntents(messages) {
     const messagesProcessed = []
     const totalMessages = messages.length;
     let processedMessages = 0;
-    const progressBar = new ProgressBar('Processing messages [:bar] :current/:total at :rate/s  :elapsed s', {
-        complete: '=',
-        incomplete: '-',
-        width: 20,
-        total: totalMessages,
-        clear: true
-    });
-    const progressBarIncrement = () => {
+    let progressBarIncrement = () => {
         processedMessages++;
-        progressBar.tick();
-        if (progressBar.complete) {
-            console.log(`Found ${intents.length} from ${messages.length}`)
+        console.log('Intent generation progress: ' + processedMessages + '/' + totalMessages)
+    }
+
+    const isServer = process.env.deployment && process.env.deployment === 'server' ? true : false;
+
+    if (!(isServer)) {
+        const progressBar = new ProgressBar('Processing messages [:bar] :current/:total at :rate/s  :elapsed s', {
+            complete: '=',
+            incomplete: '-',
+            width: 20,
+            total: totalMessages,
+            clear: true
+        });
+        progressBarIncrement = () => {
+            processedMessages++;
+            progressBar.tick();
+            if (progressBar.complete) {
+                console.log(`Found ${intents.length} from ${messages.length}`)
+            }
         }
     }
 
@@ -67,7 +76,11 @@ async function getIntents(messages) {
             } catch (error) {
                 tried++;
                 if (tried === RETRY_LIMIT - 1) {
-                    progressBar.interrupt(`Ignoring \"${message.chatMessage.substring(0, 20).replace('\n', ' ')}\" ` + error.message)
+                    if (!isServer) {
+                        progressBar.interrupt(`Ignoring \"${message.chatMessage.substring(0, 20).replace('\n', ' ')}\" ` + error.message)
+                    } else {
+                        console.log(`Ignoring \"${message.chatMessage.substring(0, 20).replace('\n', ' ')}\" ` + error.message)
+                    }
                     progressBarIncrement()
                     break;
                 }

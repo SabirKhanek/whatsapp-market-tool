@@ -25,7 +25,8 @@ const client = new Client({
 const { setClient, getMessages: getMessages, getMessageObj, getBatchClassifiedMessages } = require('./src/utils/chats');
 const { saveIntents, newMessages } = require('./db/dbhandler');
 setClient(client)
-const { getExcelPath, getPotentialPairsPath } = require('./db/query2xl')
+const { getExcelPath, getPotentialPairsPath } = require('./db/query2xl');
+const extractIntent = require('./src/extractIntent');
 
 
 // Lock intent generation if already in progress
@@ -94,6 +95,16 @@ client.on('message', async (message) => {
 
 
         // Commands
+        if (message.body.startsWith('%%verify-intent')) {
+            const text = message.body.split(' ').slice(1).join(' ')
+
+            if (text && text.length > 0) {
+                const resp = await extractIntent(text)
+                if (resp) {
+                    client.sendMessage(message.from, resp)
+                }
+            }
+        }
 
         if (message.body === '%%help') {
             const messageSent = await client.sendMessage(message.from, `Commands:\n- %%make_me_admin: make the sender as admin\n- %%time_filter: Update the timeframe for messages extraction\n- %%get_summary: List number of messages after applied filter\n- %%get_products: Send the excel file of intents generation summary to the admin\n- %%get_pairs: Generate excel file with buy and sell pairs e.g., %%get_pairs\n- %%generate_intents\n- %%update_new_messages_interval: Update the interval for new messages intent generation\n- %%check: Check if the bot is working`)

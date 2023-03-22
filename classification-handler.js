@@ -23,14 +23,14 @@ async function get_classification(messages) {
 
     // Asynchronously spawn the child process
     let spawned;
+    console.log(process.env.deployment)
     if (process.env.deployment && process.env.deployment === 'server') {
-        spawned = spawn('python', ['intent-classifier.py', 'predict', '.' + payloadFileName], { cwd: classifierPath });
+        spawned = spawn('source', ['./bin/activate', '&&', 'python', 'intent-classifier.py', 'predict', '.' + payloadFileName], { cwd: classifierPath, shell: true });
     } else {
         spawned = spawn('intent-classifier', ['predict', '.' + payloadFileName], { cwd: classifierPath });
     }
 
     var subprocess = spawned.childProcess;
-
 
     // Wait for the process to exit and capture its output
     const output = await new Promise((resolve, reject) => {
@@ -42,6 +42,7 @@ async function get_classification(messages) {
             resolve(result);
         });
         subprocess.on('error', (err) => {
+            console.log(err)
             reject(err);
         });
     });
@@ -280,7 +281,7 @@ async function get_classification(messages) {
 // ]
 
 // get_classification(messages).then((result) => {
-//     console.log(result)
+//     console.log('done')
 // })
 
 module.exports.get_classification = get_classification
