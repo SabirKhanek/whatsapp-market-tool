@@ -2,7 +2,7 @@ const { spawn } = require('child-process-promise');
 const fs = require('fs')
 const iconv = require('iconv-lite');
 
-const packagesInstalled = false;
+let packagesInstalled = false;
 
 async function get_classification(messages) {
     console.log('Classification request recieved...')
