@@ -2,8 +2,31 @@ const { spawn } = require('child-process-promise');
 const fs = require('fs')
 const iconv = require('iconv-lite');
 
+const packagesInstalled = false;
+
 async function get_classification(messages) {
     console.log('Classification request recieved...')
+    if (!packagesInstalled) {
+        console.log('Installing pip packages...')
+        const pipSpawn = spawn('pip', ['install', 'numpy', 'pandas', 'joblib', 'scipy', 'scikit-learn', 'nltk'], { cwd: './intent-classifier' });
+        const pipSubprocess = pipSpawn.childProcess;
+        const output = await new Promise((resolve, reject) => {
+            let result = '';
+            pipSubprocess.stdout.on('data', (data) => {
+                result += data;
+            });
+            pipSubprocess.stdout.on('close', () => {
+                resolve(result);
+            });
+            pipSubprocess.on('error', (err) => {
+                console.log(err)
+                reject(err);
+            });
+        });
+        console.log(output)
+        packagesInstalled = true
+    }
+
     const classifierPath = './intent-classifier'
     const payloadFileName = '/payload_' + Date.now() + '.txt'
     const payloadPath = classifierPath + payloadFileName
