@@ -23,29 +23,35 @@ async function get_classification(messages) {
 
     // Asynchronously spawn the child process
     let spawned;
-    console.log(process.env.deployment)
+
     if (process.env.deployment && process.env.deployment === 'server') {
-        spawned = spawn('source', ['./bin/activate', '&&', 'python', 'intent-classifier.py', 'predict', '.' + payloadFileName], { cwd: classifierPath, shell: true });
+        spawned = spawn('./bin/activate', ['&&', 'python', 'intent-classifier.py', 'predict', '.' + payloadFileName], { cwd: classifierPath, shell: true });
     } else {
         spawned = spawn('intent-classifier', ['predict', '.' + payloadFileName], { cwd: classifierPath });
     }
 
     var subprocess = spawned.childProcess;
 
+    let output;
     // Wait for the process to exit and capture its output
-    const output = await new Promise((resolve, reject) => {
-        let result = '';
-        subprocess.stdout.on('data', (data) => {
-            result += data;
+    try {
+        output = await new Promise((resolve, reject) => {
+            let result = '';
+            subprocess.stdout.on('data', (data) => {
+                result += data;
+            });
+            subprocess.stdout.on('close', () => {
+                resolve(result);
+            });
+            subprocess.on('error', (err) => {
+                console.log(err)
+                reject(err);
+            });
         });
-        subprocess.stdout.on('close', () => {
-            resolve(result);
-        });
-        subprocess.on('error', (err) => {
-            console.log(err)
-            reject(err);
-        });
-    });
+
+    } catch (err) {
+        console.log(err)
+    }
 
     // delete payload file
     fs.unlinkSync(payloadPath)
