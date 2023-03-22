@@ -80,6 +80,8 @@ def train_model():
     # Save the vectorizer to disk
     joblib.dump(vectorizer, 'vectorizer.pkl')
 
+    return [clf, vectorizer]
+
 def get_prediction():
     filenames = ['model.pkl', 'vectorizer.pkl']
     for filename in filenames:
@@ -87,8 +89,15 @@ def get_prediction():
             print(f"Error: '{filename}' file not found. Train the model first.")
             sys.exit(1)
     # Load the trained model and vectorizer
-    clf = joblib.load('model.pkl')
-    vectorizer = joblib.load('vectorizer.pkl')
+    clf = 0
+    vectorizer = 0
+    try:
+        clf = joblib.load('model.pkl')
+        vectorizer = joblib.load('vectorizer.pkl')
+    except:
+        training = train_model()
+        clf = training[0]
+        vectorizer = training[1]
 
     # Load the messages from input file
     messages = []
