@@ -25,7 +25,7 @@ async function get_classification(messages) {
     let spawned;
 
     if (process.env.deployment && process.env.deployment === 'server') {
-        spawned = spawn('./bin/activate', ['&&', 'python', 'intent-classifier.py', 'predict', '.' + payloadFileName], { cwd: classifierPath, shell: true });
+        spawned = spawn('python', ['intent-classifier.py', 'predict', '.' + payloadFileName], { cwd: classifierPath, shell: true });
     } else {
         spawned = spawn('intent-classifier', ['predict', '.' + payloadFileName], { cwd: classifierPath });
     }
