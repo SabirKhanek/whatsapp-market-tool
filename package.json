@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "pip install virtualenv && virtualenv intent-classifier && source intent-classifier/bin/activate && pip install -r intent-classifier/requirements.txt && deactivate",
+    "postinstall": "pip install virtualenv && virtualenv intent-classifier && ./intent-classifier/bin/activate && pip install -r intent-classifier/requirements.txt && deactivate",
     "build": "pkg ."
   },
   "keywords": [
