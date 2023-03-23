@@ -1,5 +1,5 @@
 var TimeFilter = 24 * 60 * 60
-var newMessageInterval = 60 * 30
+var newMessageInterval = 60 * 15
 
 module.exports.TimeFilter = {
     getTime: () => {

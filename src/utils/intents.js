@@ -7,7 +7,7 @@ const ProgressBar = require('progress');
 const { registerMessageInDB, ifMessageExist } = require('../../db/dbhandler')
 
 async function getIntents(messages) {
-    const RETRY_LIMIT = 5;
+    const RETRY_LIMIT = 3;
     const intents = []
     const messagesProcessed = []
     const totalMessages = messages.length;
@@ -54,18 +54,18 @@ async function getIntents(messages) {
             const resp = await extractIntent(message.chatMessage)
             if (resp.includes('SERVER_ERROR')) {
                 if (resp.includes('429')) {
-                    progressBar.interrupt('AI requests/min limit reached (Consider upgrading your account to avoid this error in future)')
-                    const randomWait = Math.floor(Math.random() * 10000) + 5000; // Generates a random number between 5000 and 15000 (in milliseconds)
-                    await new Promise(resolve => setTimeout(resolve, randomWait));
+                    console.log('AI requests/min limit reached (Consider upgrading your account to avoid this error in future)')
+                    await new Promise(resolve => setTimeout(resolve, 10000));
                 }
                 continue;
             }
 
+            if (resp.includes('CODE400')) {
+                progressBarIncrement()
+                return
+            }
 
             try {
-                if (resp.includes('CODE400')) {
-                    throw new Error('No intent found')
-                }
                 const startIndex = resp.indexOf('{')
                 const endIndex = resp.lastIndexOf('}')
                 intent = JSON.parse(resp.substring(startIndex, endIndex + 1))
