@@ -1,4 +1,3 @@
-require('dotenv').config()
 // Check if the environment variables are set
 
 if (!process.env.openai_key) {
@@ -95,7 +94,7 @@ client.on('message', async (message) => {
 
 
         // Commands
-        if (message.body.startsWith('%%verify-intent')) {
+        if (message.body.startsWith('%%verify_intent')) {
             const text = message.body.split(' ').slice(1).join(' ')
 
             if (text && text.length > 0) {
@@ -107,7 +106,7 @@ client.on('message', async (message) => {
         }
 
         if (message.body === '%%help') {
-            const messageSent = await client.sendMessage(message.from, `Commands:\n- %%make_me_admin: make the sender as admin\n- %%time_filter: Update the timeframe for messages extraction\n- %%get_summary: List number of messages after applied filter\n- %%get_products: Send the excel file of intents generation summary to the admin\n- %%get_pairs: Generate excel file with buy and sell pairs e.g., %%get_pairs\n- %%generate_intents\n- %%update_new_messages_interval: Update the interval for new messages intent generation\n- %%check: Check if the bot is working`)
+            const messageSent = await client.sendMessage(message.from, `Commands:\n- %%make_me_admin: make the sender as admin\n- %%time_filter: Update the timeframe for messages extraction\n- %%get_summary: List number of messages after applied filter\n- %%get_products: Send the excel file of intents generation summary to the admin\n- %%get_pairs: Generate excel file with buy and sell pairs e.g., %%get_pairs\n- %%generate_intents\n- %%new_messages_interval: Update the interval for new messages intent generation\n- %%verify_intent: generate the intent of the message\n- %%check: Check if the bot is working`)
             await messageSent.delete()
             return;
         }
@@ -129,13 +128,13 @@ client.on('message', async (message) => {
             const time = message.body.split(' ')[1]
 
             if (!time) {
-                client.sendMessage(message.from, `Current time filter is (${newMessageInterval.getTime()} seconds) Please provide the time in seconds.`)
+                client.sendMessage(message.from, `Current interval is set to (${newMessageInterval.getTime()} seconds) Please provide the time in seconds.`)
                 return;
             }
-            // if (time <= 15 * 60) {
-            //     client.sendMessage(message.from, `Minimum interval is 15 minutes. Current time filter is (${newMessageInterval.getTime()} seconds)`)
-            //     return;
-            // }
+            if (time <= 15 * 60) {
+                client.sendMessage(message.from, `Minimum interval is 15 minutes. Current time filter is (${newMessageInterval.getTime()} seconds)`)
+                return;
+            }
 
             newMessageInterval.setTime(time)
             modifyInterval()

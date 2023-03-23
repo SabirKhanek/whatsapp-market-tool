@@ -43,7 +43,7 @@ function generateProductData(time_filter) {
     return data
 }
 
-async function generateProductExcel(time_filter = TimeFilter.getTime()) {
+async function generateProductExcel(time_filter = (new Date().getTime() / 1000)) {
     const data = generateProductData(time_filter);
 
     const workbook = new ExcelJS.Workbook();

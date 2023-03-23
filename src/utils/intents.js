@@ -7,7 +7,7 @@ const ProgressBar = require('progress');
 const { registerMessageInDB, ifMessageExist } = require('../../db/dbhandler')
 
 async function getIntents(messages) {
-    const RETRY_LIMIT = 3;
+    const RETRY_LIMIT = 5;
     const intents = []
     const messagesProcessed = []
     const totalMessages = messages.length;
@@ -60,15 +60,14 @@ async function getIntents(messages) {
                 }
                 continue;
             }
-            // console.log(message.chatMessage)
-            // console.log(resp)
-            if (resp.includes('CODE400')) {
-                progressBarIncrement()
-                break;
-            }
-            const startIndex = resp.indexOf('{')
-            const endIndex = resp.lastIndexOf('}')
+
+
             try {
+                if (resp.includes('CODE400')) {
+                    throw new Error('No intent found')
+                }
+                const startIndex = resp.indexOf('{')
+                const endIndex = resp.lastIndexOf('}')
                 intent = JSON.parse(resp.substring(startIndex, endIndex + 1))
                 if (validateIntent.validate(intent).error) {
                     throw new Error('Invalid Intent' + validateIntent.validate(intent).error)
