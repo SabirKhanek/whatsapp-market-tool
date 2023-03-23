@@ -49,12 +49,12 @@ def train_model():
     # Check for missing values in 'intent' column
     null_values = data['intent'].isnull()
     if null_values.any():
-        print("The following rows have missing 'intent' values:")
-        print(data[null_values])
+        # print("The following rows have missing 'intent' values:")
+        # print(data[null_values])
         # Impute missing values with most frequent value
         data['intent'].fillna(data['intent'].mode()[0], inplace=True)
-    else:
-        print("No missing values found in 'intent' column.")
+    # else:
+        # print("No missing values found in 'intent' column.")
 
 
 
@@ -72,7 +72,7 @@ def train_model():
 
     # Evaluate the model
     accuracy = clf.score(X_test_vec, y_test)
-    print(f"Accuracy: {accuracy}")
+    # print(f"Accuracy: {accuracy}")
     # Save the trained model to disk
     import joblib
     joblib.dump(clf, 'model.pkl')

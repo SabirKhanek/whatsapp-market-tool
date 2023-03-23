@@ -44,10 +44,12 @@ async function generateNewMsgIntents() {
 
     getIntents(msgs).then((intents) => {
         saveIntents(intents)
+    }).catch((err) => {
+        console.log('Error while getting intents: ', err)
     })
 }
 
-var newMessageCronJon = setInterval(generateNewMsgIntents, newMessageInterval.getTime() * 1000) // 30 minutes
+var newMessageCronJon = setInterval(generateNewMsgIntents, newMessageInterval.getTime() * 1000) // 15 minutes
 
 function modifyInterval() {
     clearInterval(newMessageCronJon)
@@ -131,7 +133,7 @@ client.on('message', async (message) => {
                 client.sendMessage(message.from, `Current interval is set to (${newMessageInterval.getTime()} seconds) Please provide the time in seconds.`)
                 return;
             }
-            if (time <= 15 * 60) {
+            if (time < 15 * 60) {
                 client.sendMessage(message.from, `Minimum interval is 15 minutes. Current time filter is (${newMessageInterval.getTime()} seconds)`)
                 return;
             }
