@@ -37,6 +37,9 @@ async function getIntents(messages) {
     }
 
     await forEach(messages, async (message) => {
+        if (message.predictedIntent) {
+            message.chatMessage += '\nPredicted Intent: ' + message.predictedIntent
+        }
         // Register the message in DB so same message don't get available.
         messagesProcessed.push(message.id)
         if (ifMessageExist(message.id, message.chatMessage)) {
@@ -55,7 +58,7 @@ async function getIntents(messages) {
             if (resp.includes('SERVER_ERROR')) {
                 if (resp.includes('429')) {
                     console.log('AI requests/min limit reached (Consider upgrading your account to avoid this error in future)')
-                    await new Promise(resolve => setTimeout(resolve, 10000));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
                 continue;
             }
@@ -87,6 +90,10 @@ async function getIntents(messages) {
             }
             const intentObj = {
                 ..._(message).pick(['chatId', 'id', 'chatName', 'chatMessage', 'chatType', 'chatMessageAuthor', 'chatMessageTime']).value(), ...intent
+            }
+
+            if (intentObj.chatMessage.includes('\nPredicted Intent:')) {
+                intentObj.chatMessage = intentObj.chatMessage.substring(0, intentObj.chatMessage.indexOf('\nPredicted Intent:'))
             }
 
             // intent = intent.map(x => Object.fromEntries(Object.entries(x).map(
@@ -135,40 +142,23 @@ async function getIntents(messages) {
 //         "chatId": "120363063452915739@g.us",
 //         "chatName": "Test",
 //         "chatType": "Group",
-//         "chatMessage": "*Want To Sell*\n\n*Verizon Postpaid Unlocked Orbic RC2210L 4G LTE HD Voice VoLTE Flip Phone* \n1465pcs\nNew/A++\nWith Oem Batteries & Doors\n\n\n*T-Mobile Franklin T9 Mifi Hotspot - With unlock codes*\n1600+pcs\nA+ stock\nWith batteries and door only\nBulk packed\n\n\nReady To Ship\n\nLet me knw if you can use them.",
+//         "chatMessage": "WTB Iphone 12 64GB Unlocked (AB stock Kitted)\n\nPlease Let Us Know If you can Use any\n\nThank you",
 //         "chatMessageAuthor": "923412727290@c.us",
 //         "chatMessageTime": 1678522453,
 //         "id": "false_120363063452915739@g.us_6C49342754658138B566ADB4A5BBF81A_923412727290@c.us",
-//         "fromMe": false
+//         "fromMe": false,
+//         "predictedIntent": 'Buy'
 //     },
 //     {
 //         "chatId": "120363063452915739@g.us",
 //         "chatName": "Test",
 //         "chatType": "Group",
-//         "chatMessage": "*Want to Sell* \n\n*Iphone 12 64GB Unlocked (AB stock Kitted)*\n\nPlease Let Us Know If you can Use any\n\nThank you",
+//         "chatMessage": "WTS: Iphone 8 128GB unlocked (A++)",
 //         "chatMessageAuthor": "923412727290@c.us",
 //         "chatMessageTime": 1678522454,
 //         "id": "false_120363063452915739@g.us_F6B39BCE8E8EE6208BB4D944AD6F9FD7_923412727290@c.us",
-//         "fromMe": false
-//     }, {
-//         "chatId": "923412727290@c.us",
-//         "chatName": "Sabir Khan",
-//         "chatType": "Individual",
-//         "chatMessage": "%%get_summary",
-//         "chatMessageAuthor": "Sabir Khan",
-//         "chatMessageTime": 1678522467,
-//         "id": "false_923412727290@c.us_51402702B2F8C635E3F96EED411F5C0E",
-//         "fromMe": false
-//     },
-//     {
-//         "chatId": "923412727290@c.us",
-//         "chatName": "Sabir Khan",
-//         "chatType": "Individual",
-//         "chatMessage": "%%generate_intents",
-//         "chatMessageAuthor": "Sabir Khan",
-//         "chatMessageTime": 1678522556,
-//         "id": "false_923412727290@c.us_DDEF20A31D144BD989C01E6B6CEA054D",
-//         "fromMe": false
+//         "fromMe": false,
+//         "predictedIntent": 'Sell'
 //     }
 // ]
 

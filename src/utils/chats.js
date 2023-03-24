@@ -38,6 +38,9 @@ async function getBatchClassifiedMessages(messages) {
                 return true
             }
         })
+        messages.forEach(message => {
+            message.predictedIntent = classification[message.chatMessage]
+        })
         return messages
     } catch (err) {
         return []
@@ -78,6 +81,9 @@ async function getMessages() {
             if (classification[message.chatMessage] === 'Buy' || classification[message.chatMessage] === 'Sell') {
                 return true
             }
+        })
+        messages.forEach(message => {
+            message.predictedIntent = classification[message.chatMessage]
         })
     } catch (error) {
         console.log('Error in classification because of ', error)
