@@ -24,7 +24,7 @@ const client = new Client({
 const { setClient, getMessages: getMessages, getMessageObj, getBatchClassifiedMessages } = require('./src/utils/chats');
 const { saveIntents, newMessages } = require('./db/dbhandler');
 setClient(client)
-const { getExcelPath, getPotentialPairsPath } = require('./db/query2xl');
+const { getExcelPath, getPotentialPairsPath, generateClassifiedMessagesExcel } = require('./db/query2xl');
 const extractIntent = require('./src/extractIntent');
 
 
@@ -108,7 +108,7 @@ client.on('message', async (message) => {
         }
 
         if (message.body === '%%help') {
-            const messageSent = await client.sendMessage(message.from, `Commands:\n- %%make_me_admin: make the sender as admin\n- %%time_filter: Update the timeframe for messages extraction\n- %%get_summary: List number of messages after applied filter\n- %%get_products: Send the excel file of intents generation summary to the admin\n- %%get_pairs: Generate excel file with buy and sell pairs e.g., %%get_pairs\n- %%generate_intents\n- %%new_messages_interval: Update the interval for new messages intent generation\n- %%verify_intent: generate the intent of the message\n- %%check: Check if the bot is working`)
+            const messageSent = await client.sendMessage(message.from, `Commands:\n- %%make_me_admin: make the sender as admin\n- %%time_filter: Update the timeframe for messages extraction\n- %%get_summary: List number of messages after applied filter\n- %%get_products: Send the excel file of intents generation summary to the admin\n- %%get_pairs: Generate excel file with buy and sell pairs e.g., %%get_pairs\n- %%generate_intents\n- %%new_messages_interval: Update the interval for new messages intent generation\n- %%verify_intent: generate the intent of the message\n- %%check: Check if the bot is working\n- %%get_classified_messages: Generate locally classified messages (for model training)`)
             await messageSent.delete()
             return;
         }
@@ -140,7 +140,7 @@ client.on('message', async (message) => {
 
             newMessageInterval.setTime(time)
             modifyInterval()
-            client.sendMessage(message.from, 'Time filter has been updated to: ' + newMessageInterval.getTime() + ' seconds')
+            client.sendMessage(message.from, 'Message interval has been updated to: ' + newMessageInterval.getTime() + ' seconds')
             return;
         }
 
@@ -171,6 +171,17 @@ client.on('message', async (message) => {
             const base64String = Buffer.from(fileData).toString('base64');
             const mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
             const media = new MessageMedia(mimetype, base64String, 'potential_buysell_pairs.xlsx');
+            client.sendMessage(message.from, media, { caption: 'Here is your excel file.' })
+            return;
+        }
+
+        if (message.body === '%%get_classified_messages') {
+            await message.delete()
+            const excelPath = await generateClassifiedMessagesExcel()
+            const fileData = fs.readFileSync(excelPath);
+            const base64String = Buffer.from(fileData).toString('base64');
+            const mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            const media = new MessageMedia(mimetype, base64String, 'local_classifications.xlsx');
             client.sendMessage(message.from, media, { caption: 'Here is your excel file.' })
             return;
         }

@@ -1,6 +1,7 @@
 const { spawn } = require('child-process-promise');
 const fs = require('fs')
 const iconv = require('iconv-lite');
+const { registerClassifiedMessage } = require('./db/dbhandler')
 
 async function get_classification(messages) {
     console.log('Classification request recieved...')
@@ -66,6 +67,7 @@ async function get_classification(messages) {
     const result = {};
     for (let i = 0; i < messages.length; i++) {
         result[messages[i]] = parsedResponse[i];
+        registerClassifiedMessage(messages[i], parsedResponse[i])
     }
     return result;
 }

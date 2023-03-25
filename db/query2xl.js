@@ -312,6 +312,50 @@ async function generatePotentialPairsExcel(time_filter = (new Date().getTime() /
     return file_path;
 }
 
+function generateClassifiedMessages() {
+    const query = db.prepare('SELECT * FROM CLASSIFIED_MESSAGES');
+    return query.all();
+}
+
+async function generateClassifiedMessagesExcel() {
+    const data = generateClassifiedMessages();
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Classified Messages');
+
+    // Define headers for the worksheet
+    const workbook_columns = [
+        { header: 'Message', key: 'message' },
+        { header: 'Intent', key: 'intent' },
+    ];
+
+    worksheet.columns = workbook_columns.map(column => {
+        return { ...column, width: undefined };
+    });
+
+    // Add data to the worksheet
+    data.forEach(row => {
+        worksheet.addRow({
+            message: row.message,
+            intent: row.intent,
+        });
+    })
+
+    const timestamp = new Date().toISOString().replace(/[-:.]/g, '');
+    const filename = `./db/generated_local_classifications_${timestamp}.xlsx`;
+
+
+    const file_path = filename;
+
+    // Save the workbook to a file
+    await workbook.xlsx.writeFile(file_path)
+
+
+    return file_path;
+}
+
+module.exports.generateClassifiedMessagesExcel = generateClassifiedMessagesExcel;
+
 module.exports.getPotentialPairsPath = generatePotentialPairsExcel;
 
 

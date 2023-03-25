@@ -6,6 +6,10 @@ const _ = require('lodash');
 const queryGetMessageId = db.prepare(`SELECT id FROM chat WHERE id = ? or chatMessage = ?`);
 // END
 
+const queryInsertIntoClassifiedMessages = db.prepare(`INSERT INTO CLASSIFIED_MESSAGES (message, intent) VALUES (?, ?)`);
+const queryUpdateClassifiedMessages = db.prepare(`UPDATE CLASSIFIED_MESSAGES SET intent = ? WHERE message = ?`);
+const queryGetClassifiedMessage = db.prepare(`SELECT message FROM CLASSIFIED_MESSAGES WHERE message = ?`);
+
 const queryInsertIntoNewMessages = db.prepare(`INSERT INTO NEW_MESSAGES (message_body) VALUES (?)`)
 
 const queryGetNewMessages = db.prepare(`SELECT * FROM NEW_MESSAGES`);
@@ -25,6 +29,16 @@ const queryInsertTagVariant = db.prepare(`INSERT INTO TagVariant (tag_id, varian
 const queryInsertProcessedMessage = db.prepare(`INSERT INTO PROCESSED_MESSAGES (message_id) VALUES (?)`)
 
 const queryGetTag = db.prepare(`SELECT * FROM TAG WHERE tag_name = ?`);
+
+
+const registerClassifiedMessage = (message, intent) => {
+    const messageInDb = queryGetClassifiedMessage.get(message);
+    if (messageInDb) {
+        queryUpdateClassifiedMessages.run(intent, message);
+    } else {
+        queryInsertIntoClassifiedMessages.run(message, intent);
+    }
+}
 
 const saveIntent = (intent) => {
     // INSERT CHAT
@@ -214,4 +228,5 @@ module.exports.newMessages = { get: getNewMessages, save: saveNewMessage, delete
 module.exports.saveIntents = saveIntents;
 module.exports.registerMessageInDB = registerMessageInDB;
 module.exports.getMessageIds = getMessageIds;
-module.exports.ifMessageExist = ifMessageExist
+module.exports.ifMessageExist = ifMessageExist;
+module.exports.registerClassifiedMessage = registerClassifiedMessage;
