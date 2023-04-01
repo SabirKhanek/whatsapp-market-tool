@@ -66,6 +66,7 @@ client.on('qr', (qr) => {
 
 
 client.on('message', async (message) => {
+    console.log('Message received: ', message.body)
     try {
         if (message.body <= 0) return
         if (message.from === 'status@broadcast') return
@@ -146,7 +147,7 @@ client.on('message', async (message) => {
 
 
         if (message.body === '%%get_summary') {
-            await message.delete()
+
             const messages = await getMessages()
             const messageSent = await client.sendMessage(message.from, `Filters:\n- last (${TimeFilter.getTime()} seconds)\n- Exclude already saved messages\nMessage: ${messages.length}`)
             await messageSent.delete()
@@ -154,7 +155,7 @@ client.on('message', async (message) => {
         }
 
         if (message.body === '%%get_products') {
-            await message.delete()
+
             const excelPath = await getExcelPath()
             const fileData = fs.readFileSync(excelPath);
             const base64String = Buffer.from(fileData).toString('base64');
@@ -165,7 +166,7 @@ client.on('message', async (message) => {
         }
 
         if (message.body === '%%get_pairs') {
-            await message.delete()
+
             const excelPath = await getPotentialPairsPath()
             const fileData = fs.readFileSync(excelPath);
             const base64String = Buffer.from(fileData).toString('base64');
@@ -176,7 +177,7 @@ client.on('message', async (message) => {
         }
 
         if (message.body === '%%get_classified_messages') {
-            await message.delete()
+
             const excelPath = await generateClassifiedMessagesExcel()
             const fileData = fs.readFileSync(excelPath);
             const base64String = Buffer.from(fileData).toString('base64');
@@ -189,12 +190,12 @@ client.on('message', async (message) => {
         if (message.body === '%%generate_intents') {
             if (intentMutex) {
                 await (await client.sendMessage(message.from, 'Intent generation is already in progress. Please wait for it to finish.')).delete()
-                await message.delete()
+
                 return
             }
             intentMutex = true
             await (await client.sendMessage(message.from, 'Request recieved, Now processing your request. Look at the console for logs.')).delete()
-            await message.delete()
+
             const messages = await getMessages()
             const intents = await getIntents(messages)
             console.log('Saving the generated intents in the database.')
@@ -204,7 +205,7 @@ client.on('message', async (message) => {
             await messageSent.delete()
             intentMutex = false
         } else {
-            await message.delete()
+
         }
     } catch (error) {
         console.log(error.message)
