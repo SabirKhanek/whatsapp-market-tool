@@ -107,7 +107,8 @@ async function generateProductExcel(time_filter = (new Date().getTime() / 1000))
         Object.keys(row).forEach((key, index) => {
             const column = worksheet.getColumn(index + 1); // Excel columns are 1-indexed
             const cellWidth = (row[key] && row[key].toString().length + 2) || 10; // add 2 for padding
-            column.width = Math.max((column.width || 0), cellWidth); // take the max of the current width and the cell width
+            const desired_width = Math.max((column.width || 0), cellWidth);
+            column.width = (desired_width >= 60 ? 60 : desired_width); // take the max of the current width and the cell width
         });
     });
 

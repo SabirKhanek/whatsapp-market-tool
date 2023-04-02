@@ -230,3 +230,15 @@ module.exports.registerMessageInDB = registerMessageInDB;
 module.exports.getMessageIds = getMessageIds;
 module.exports.ifMessageExist = ifMessageExist;
 module.exports.registerClassifiedMessage = registerClassifiedMessage;
+module.exports.execSql = (query) => {
+    try {
+        const result = db.prepare(query).run()
+        return JSON.stringify(result)
+    } catch (err) {
+        return err.message
+    };
+};
+module.exports.isClassifed = (message) => {
+    const messageInDb = queryGetClassifiedMessage.get(message);
+    return !!messageInDb;
+}

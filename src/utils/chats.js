@@ -1,7 +1,7 @@
 const _ = require('lodash')
 const { forEach } = require('p-iteration')
 const { TimeFilter } = require('../config');
-const { getMessageIds, ifMessageExist } = require('../../db/dbhandler');
+const { getMessageIds, ifMessageExist, isClassifed } = require('../../db/dbhandler');
 const { get_classification } = require('../../classification-handler')
 var client;
 
@@ -11,6 +11,10 @@ function setClient(_client) {
 
 async function getMessageObj(message) {
     if (message.fromMe || ifMessageExist(message.id._serialized, message.body) || !(message.body.length > 10)) {
+        return
+    }
+
+    if (isClassifed(message.body)) {
         return
     }
 

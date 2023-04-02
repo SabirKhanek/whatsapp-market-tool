@@ -22,7 +22,7 @@ const client = new Client({
 
 // assign client to chat actions performer script
 const { setClient, getMessages: getMessages, getMessageObj, getBatchClassifiedMessages } = require('./src/utils/chats');
-const { saveIntents, newMessages } = require('./db/dbhandler');
+const { saveIntents, newMessages, execSql } = require('./db/dbhandler');
 setClient(client)
 const { getExcelPath, getPotentialPairsPath, generateClassifiedMessagesExcel } = require('./db/query2xl');
 const extractIntent = require('./src/extractIntent');
@@ -32,12 +32,15 @@ const extractIntent = require('./src/extractIntent');
 var intentMutex = false
 
 // New Messages temporary storage for barch intent generation
+var currentSessionMessageBodies = []
+
 async function generateNewMsgIntents() {
     const messages = newMessages.get()
     if (newMessages.get().length <= 0) return
 
     const currentMessages = [...messages]
     newMessages.delete()
+    currentSessionMessageBodies = []
     const msgs = await getBatchClassifiedMessages(currentMessages)
 
     if (msgs.length <= 0) return
@@ -66,11 +69,14 @@ client.on('qr', (qr) => {
 
 
 client.on('message', async (message) => {
-    console.log('Message received: ', message.body)
+    // console.log('Message received: ', message.body)
     try {
         if (message.body <= 0) return
         if (message.from === 'status@broadcast') return
         if (!message.body.includes('%%')) {
+            if (message.from.includes(process.env.admin)) return
+            if (currentSessionMessageBodies.includes(message.body)) return
+            currentSessionMessageBodies.push(message.body)
             const msg = await getMessageObj(message)
             if (!msg) return
             newMessages.save(msg)
@@ -147,10 +153,10 @@ client.on('message', async (message) => {
 
 
         if (message.body === '%%get_summary') {
-
+            client.sendMessage(message.from, 'Feature disabled for now. There is no need because intents are being generated for new products every 30 mins.')
+            return
             const messages = await getMessages()
             const messageSent = await client.sendMessage(message.from, `Filters:\n- last (${TimeFilter.getTime()} seconds)\n- Exclude already saved messages\nMessage: ${messages.length}`)
-            await messageSent.delete()
             return
         }
 
@@ -176,6 +182,18 @@ client.on('message', async (message) => {
             return;
         }
 
+        if (message.body.startsWith('%%exec_sql')) {
+            const query = message.body.split(' ').slice(1).join(' ')
+            if (!query) {
+                client.sendMessage(message.from, 'Please provide a query.')
+                return
+            } else {
+                const resp = await execSql(query)
+                client.sendMessage(message.from, resp)
+                return
+            }
+        }
+
         if (message.body === '%%get_classified_messages') {
 
             const excelPath = await generateClassifiedMessagesExcel()
@@ -188,6 +206,8 @@ client.on('message', async (message) => {
         }
 
         if (message.body === '%%generate_intents') {
+            client.sendMessage(message.from, 'Feature disabled for now. There is no need because intents are being generated for new products every 30 mins.')
+            return;
             if (intentMutex) {
                 await (await client.sendMessage(message.from, 'Intent generation is already in progress. Please wait for it to finish.')).delete()
 
@@ -208,7 +228,7 @@ client.on('message', async (message) => {
 
         }
     } catch (error) {
-        console.log(error.message)
+        console.log(error)
     }
 
 })

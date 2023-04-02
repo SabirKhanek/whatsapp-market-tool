@@ -97,6 +97,11 @@ db.function('mergestr', (a, b) => {
     }
     const removeCommon = (str1, str2) => {
         // Convert strings to arrays of words
+        if (typeof str1 !== 'string') {
+            str1 = '-'
+        } else if (typeof str2 !== 'string') {
+            str2 = '-'
+        }
         const arr1 = str1.toLowerCase().split(' ');
         const arr2 = str2.toLowerCase().split(' ');
 
