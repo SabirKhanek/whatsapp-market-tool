@@ -150,49 +150,46 @@ async function generateProductExcel(time_filter = (new Date().getTime() / 1000))
 function generatePotentialPairsData(time_filter) {
     const query =
         `SELECT mergestr(b.name, bv.name) as buy_prd,
-    mergestr(s.name, sv.name) as sell_prd,
-    bv.brand as buy_brand,
-    sv.brand as sell_brand,
-    (
-        SELECT group_concat(Tag.tag_name, ', ') 
-        FROM Tag 
-        JOIN TagVariant ON TagVariant.tag_id = Tag.tag_id 
-        WHERE TagVariant.variant_id = bv.variant_id 
-    ) AS buyer_tags,
-    (
-        SELECT group_concat(Tag.tag_name, ', ') 
-        FROM Tag 
-        JOIN TagVariant ON TagVariant.tag_id = Tag.tag_id 
-        WHERE TagVariant.variant_id = sv.variant_id 
-    ) AS seller_tags,
-    similarity(
-        mergestr(b.name, bv.name),
-        mergestr(s.name, sv.name)
-    ) as name_similarity,
-    bc.chatMessage as buyer_message,
-    sc.chatMessage as seller_message,
-    bc.chatName as buyer_chat_name,
-    sc.chatName as seller_chat_name,
-    bc.chatMessageAuthor as buyer_message_author,
-    sc.chatMessageAuthor as seller_message_author,
-    datetime(bc.chatMessageTime, 'unixepoch') AS seller_message_time,
-    datetime(sc.chatMessageTime, 'unixepoch') AS buyer_message_time
-    FROM Product b
-    JOIN Product s ON s.intent = 'Sell'
-    JOIN Variant bv ON bv.prd_id = b.prd_id
-    JOIN Variant sv ON sv.prd_id = s.prd_id
-    JOIN Chat bc ON bc.id = b.chatId
-    JOIN Chat sc ON sc.id = s.chatId
-    WHERE b.intent = 'Buy'
-    AND similarity(b.type, s.type) >= 0.5
-    AND similarity(
-        mergestr(b.name, bv.name),
-        mergestr(s.name, sv.name)
-    ) >= 0.2
-    AND similarity(bv.brand, sv.brand) >= 0.5
-    AND bc.chatMessageTime >= ?
-    AND sc.chatMessageTime >= ?
-    ORDER BY name_similarity DESC;
+        mergestr(s.name, sv.name) as sell_prd,
+        bv.brand as buy_brand,
+        sv.brand as sell_brand,
+        (
+            SELECT group_concat(Tag.tag_name, ', ') 
+            FROM Tag 
+            JOIN TagVariant ON TagVariant.tag_id = Tag.tag_id 
+            WHERE TagVariant.variant_id = bv.variant_id 
+        ) AS buyer_tags,
+        (
+            SELECT group_concat(Tag.tag_name, ', ') 
+            FROM Tag 
+            JOIN TagVariant ON TagVariant.tag_id = Tag.tag_id 
+            WHERE TagVariant.variant_id = sv.variant_id 
+        ) AS seller_tags,
+        similarity(
+            mergestr(b.name, bv.name),
+            mergestr(s.name, sv.name)
+        ) as name_similarity,
+        bc.chatMessage as buyer_message,
+        sc.chatMessage as seller_message,
+        bc.chatName as buyer_chat_name,
+        sc.chatName as seller_chat_name,
+        bc.chatMessageAuthor as buyer_message_author,
+        sc.chatMessageAuthor as seller_message_author,
+        datetime(bc.chatMessageTime, 'unixepoch') AS seller_message_time,
+        datetime(sc.chatMessageTime, 'unixepoch') AS buyer_message_time
+        FROM Product b
+        JOIN Product s ON s.intent = 'Sell'
+        JOIN Variant bv ON bv.prd_id = b.prd_id
+        JOIN Variant sv ON sv.prd_id = s.prd_id
+        JOIN Chat bc ON bc.id = b.chatId
+        JOIN Chat sc ON sc.id = s.chatId
+        WHERE b.intent = 'Buy'
+        AND similarity(b.type, s.type) >= 0.5
+        AND name_similarity >= 0.4
+        AND similarity(bv.brand, sv.brand) >= 0.5
+        AND bc.chatMessageTime >= ?
+        AND sc.chatMessageTime >= ?
+        ORDER BY name_similarity DESC, RANDOM();
     `
     let timeFrom = (new Date().getTime()) / 1000;
     timeFrom = timeFrom - (time_filter ? time_filter : timeFrom);
@@ -203,7 +200,7 @@ function generatePotentialPairsData(time_filter) {
     return data
 }
 
-async function generatePotentialPairsExcel(time_filter = (new Date().getTime() / 1000)) {
+async function generatePotentialPairsExcel(time_filter = 24 * 60 * 60) {
     const data = generatePotentialPairsData(time_filter);
 
     const workbook = new ExcelJS.Workbook();
