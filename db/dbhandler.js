@@ -18,17 +18,11 @@ const queryDeleteNewMessages = db.prepare(`DELETE FROM NEW_MESSAGES`);
 
 const queryInsertChat = db.prepare(`INSERT INTO chat (id ,chatId, chatName, chatType, chatMessage, chatMessageAuthor, chatMessageTime) VALUES (?,?, ?, ?, ?, ?, ?)`);
 
-const queryInsertProduct = db.prepare(`INSERT INTO PRODUCT (intent, chatId, name, type) VALUES (?, ?, ?, ?)`);
-
-const queryInsertVariant = db.prepare(`INSERT INTO VARIANT (prd_id, name, quantity, condition, price, brand, remarks) VALUES (?, ?, ?, ?, ?, ?, ?)`);
-
-const queryInsertTags = db.prepare(`INSERT INTO TAG (tag_name) VALUES (?)`);
-
-const queryInsertTagVariant = db.prepare(`INSERT INTO TagVariant (tag_id, variant_id) VALUES (?, ?)`);
+const queryInsertProduct = db.prepare(`INSERT INTO PRODUCT (intent, chatId, name, type, quantity, ram, storage, processor, brand, price, remarks, condition, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
 
 const queryInsertProcessedMessage = db.prepare(`INSERT INTO PROCESSED_MESSAGES (message_id) VALUES (?)`)
 
-const queryGetTag = db.prepare(`SELECT * FROM TAG WHERE tag_name = ?`);
+
 
 
 const registerClassifiedMessage = (message, intent) => {
@@ -45,48 +39,23 @@ const saveIntent = (intent) => {
     queryInsertChat.run(intent.id, intent.chatId, intent.chatName, intent.chatType, intent.chatMessage, intent.chatMessageAuthor, intent.chatMessageTime);
     // END
 
-
     // INSERT PRODUCT
     intent.products.forEach(product => {
         const { lastInsertRowid: insertedPrdId } = queryInsertProduct.run(
             product.intent,
             intent.id,
-            product.name,
-            product.type !== '' ? product.type.toLowerCase() : '-'
+            product.name.toLowerCase(),
+            !['n/a', 'N/A', ''].includes(product.type) && product.type !== undefined ? product.type.toLowerCase() : '-',
+            !['n/a', 'N/A', ''].includes(product.quantity) && product.quantity !== undefined ? product.quantity.toLowerCase() : '-',
+            !['n/a', 'N/A', ''].includes(product.ram) && product.ram !== undefined ? product.ram.toLowerCase() : '-',
+            !['n/a', 'N/A', ''].includes(product.storage) && product.storage !== undefined ? product.storage.toLowerCase() : '-',
+            !['n/a', 'N/A', ''].includes(product.processor) && product.processor !== undefined ? product.processor.toLowerCase() : '-',
+            !['n/a', 'N/A', ''].includes(product.brand) && product.brand !== undefined ? product.brand.toLowerCase() : '-',
+            !['n/a', 'N/A', ''].includes(product.price) && product.price !== undefined ? product.price.toLowerCase() : '-',
+            !['n/a', 'N/A', ''].includes(product.remarks) && product.remarks !== undefined ? product.remarks.toLowerCase() : '-',
+            !['n/a', 'N/A', ''].includes(product.condition) && product.condition !== undefined ? product.condition.toLowerCase() : '-',
+            !['n/a', 'N/A', ''].includes(product.color) && product.color !== undefined ? product.color.toLowerCase() : '-'
         );
-
-        // INSERT VARIANT
-        product.variants.forEach(variant => {
-            const { lastInsertRowid: insertedVariantId } = queryInsertVariant.run(
-                insertedPrdId,
-                variant.name !== '' ? variant.name : '-',
-                variant.quantity !== '' ? variant.quantity : '-',
-                variant.condition !== '' ? variant.condition : '-',
-                variant.price !== '' ? variant.price : '-',
-                variant.brand !== '' ? variant.brand : '-',
-                variant.remarks !== '' ? variant.remarks : '-'
-            );
-
-            // INSERT TAGS
-            variant.tags.forEach(tag => {
-                if (tag === '' || tag === '-') return;
-                try {
-                    let tag_id;
-                    const tagQueried = queryGetTag.get(tag);
-                    if (!tagQueried) {
-                        const { lastInsertRowid: tagRow } = queryInsertTags.run(tag);
-                        tag_id = tagRow;
-                    } else {
-                        tag_id = tagQueried.tag_id;
-                    }
-
-                    // INSERT TAG_VARIANT
-                    queryInsertTagVariant.run(tag_id, insertedVariantId);
-                } catch (err) {
-
-                }
-            });
-        });
     });
 }
 
@@ -119,6 +88,7 @@ function saveIntents(intents) {
             saved++;
         } catch (err) {
             console.log(`ERROR while SAVING INTENT: ${err}`);
+            // console.log(`intent: ${JSON.stringify(intent)}`);
         }
     });
 
@@ -146,82 +116,7 @@ function saveNewMessage(message) {
 module.exports.newMessages = { get: getNewMessages, save: saveNewMessage, delete: deleteNewMessages }
 
 // intents = [
-//     {
-//         "chatId": "120363063452915739@g.us",
-//         "id": "false_120363063452915739@g.us_6C49342754658138B566ADB4A5BBF81A_923412727290@c.us",
-//         "chatName": "Test",
-//         "chatMessage": "*Want To Sell*\n\n*Verizon Postpaid Unlocked Orbic RC2210L 4G LTE HD Voice VoLTE Flip Phone* \n1465pcs\nNew/A++\nWith Oem Batteries & Doors\n\n\n*T-Mobile Franklin T9 Mifi Hotspot - With unlock codes*\n1600+pcs\nA+ stock\nWith batteries and door only\nBulk packed\n\n\nReady To Ship\n\nLet me knw if you can use them.",
-//         "chatType": "Group",
-//         "chatMessageAuthor": "923412727290@c.us",
-//         "chatMessageTime": 1678522453,
-//         "products": [
-//             {
-//                 "intent": "Sell",
-//                 "name": "Verizon Postpaid Unlocked Orbic RC2210L 4G LTE HD Voice VoLTE Flip Phone",
-//                 "type": "phone",
-//                 "variants": [
-//                     {
-//                         "name": "-",
-//                         "quantity": "1465pcs",
-//                         "condition": "New/A++",
-//                         "brand": "-",
-//                         "tags": [
-//                             "Oem Batteries",
-//                             "Doors"
-//                         ],
-//                         "price": "-",
-//                         "remarks": "Ready To Ship"
-//                     }
-//                 ]
-//             },
-//             {
-//                 "intent": "Sell",
-//                 "name": "T-Mobile Franklin T9 Mifi Hotspot",
-//                 "type": "mobile",
-//                 "variants": [
-//                     {
-//                         "name": "-",
-//                         "quantity": "1600+pcs",
-//                         "condition": "A+ stock",
-//                         "brand": "-",
-//                         "tags": [
-//                             "Batteries",
-//                             "Door"
-//                         ],
-//                         "price": "-",
-//                         "remarks": "Bulk packed; With unlock codes"
-//                     }
-//                 ]
-//             }
-//         ]
-//     },
-//     {
-//         "chatId": "120363063452915739@g.us",
-//         "id": "false_120363063452915739@g.us_F6B39BCE8E8EE6208BB4D944AD6F9FD7_923412727290@c.us",
-//         "chatName": "Test",
-//         "chatMessage": "*Want to Sell* \n\n*Iphone 12 64GB Unlocked (AB stock Kitted)*\n\nPlease Let Us Know If you can Use any\n\nThank you",
-//         "chatType": "Group",
-//         "chatMessageAuthor": "923412727290@c.us",
-//         "chatMessageTime": 1678522454,
-//         "products": [
-//             {
-//                 "intent": "Sell",
-//                 "name": "Iphone 12",
-//                 "type": "phone",
-//                 "variants": [
-//                     {
-//                         "name": "AB stock Kitted",
-//                         "quantity": "-",
-//                         "condition": "-",
-//                         "brand": "Apple",
-//                         "tags": [],
-//                         "price": "-",
-//                         "remarks": "64GB Unlocked"
-//                     }
-//                 ]
-//             }
-//         ]
-//     }
+//     { "chatId": "923246700564@c.us", "id": "false_923246700564@c.us_A87AAB426F011E2A352C0F00F9655FFD", "chatName": "+92 324 6700564", "chatMessage": "Selling Ready Stock*\t\nBrand New / Non-active\nPrice AED\t\n\t\n🇯🇵 14 Pro Max 1TB \nBlack/Gold \nPurple \n\n🇯🇵 14 Pro Max 128GB \nBlack\n\n🇯🇵 14 Pro 1TB Black \n\n🇯🇵 iPhone 14 Plus 512GB Blue \t\n\n🇯🇵 iPhone 14 Plus 256GB \nMidnight \t/ starlight /purple / blue \n\n🇯🇵 iPhone 14 Plus 128GB \nMidnight \t/ starlight / purple \n\n🇯🇵 iPhone 13 Pro Max 1TB \nGreen / Gold / blue \n\n🇯🇵 iPhone 13 Pro Max 256GB \nGreen \t/ Blue / silver \n\n�🇵  iPhone 13 Pro Max 128GB \nGreen \t/ Graphite / Blue \n\n🇯🇵 iPhone 13 Pro 512GB \nGreen \t/ Silver \n\n🇯🇵 iPhone 13 Pro 256GB \n Green \t/ Blue \n\n🇯🇵 iPhone 13 Pro 128GB \nGreen \t/ Blue / Silver \n\n🇯🇵 13 128GB \nMidnight/ starlight \n\n\n🇦🇪 13 256GB Midnight    \n\n🇭🇰 14 Pro Max 128GB Black \t\n\t\n🇮🇳 14 128GB Starlight/Blue \n🇮🇳 13 256GB Midnight     \n🇮🇳 12 256GB Black \t\n\n🇮🇳 SE 2 256GB \nRED \nBlack/White \n\n🇺🇸 11 Pro Max 256GB Green \t\n🇺🇸 11 Pro Max 64GB Green/Silver \n🇺🇸 11 Pro 256GB Gold \t\n🇺🇸 11 64GB Black/red \n🇺🇸 Xr 64GB RED \t\n\t\n🇩🇪 12 Pro Max 512GB Silver \t\n\n🇹🇼 12 Mini 256GB\nRed \nBlack/Green/Purple/White \n\n🇹🇼 12 Mini 128GB\nBlack/Purple/White \n\n🇹🇼 12 Mini 64GB\nBlack/Green/Purple/White \n\n🇵🇾 SE 2 256GB Black \t\n\t\n🇧🇭 Xs Max 64GB Silver/Gray \n\n- - - - - - - - - - - - - - - -\nAccessories\n\n🇺🇸 TV 4K 2nd Gen 64GB A2169 \t\n🇺🇸  Series 7 41MM Silver Steel \t\n\n🇬🇧 AirTag 4 pack MC \n\n\t\n\t*+971502305191 *\n• PM to place your order:\t\nTHT | Three Heros Trading L.L.C", "chatType": "Individual", "chatMessageAuthor": "+92 324 6700564", "chatMessageTime": 1681486600, "products": [{ "intent": "Sell", "name": "iphone 14 pro max", "type": "smartphone", "ram": "1 TB", "color": "Black/Gold/Purple", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 14 pro max", "type": "smartphone", "ram": "128 GB", "color": "Black", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 14 pro", "type": "smartphone", "ram": "1 TB", "color": "Black", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 14 plus", "type": "smartphone", "ram": "512 GB", "color": "Blue", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 14 plus", "type": "smartphone", "ram": "256 GB", "color": "Midnight/Starlight/Purple/Blue", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 14 plus", "type": "smartphone", "ram": "128 GB", "color": "Midnight/Starlight/Purple", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 13 pro max", "type": "smartphone", "ram": "1 TB", "color": "Green/Gold/Blue", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 13 pro max", "type": "smartphone", "ram": "256 GB", "color": "Green/Blue/Silver", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 13 pro max", "type": "smartphone", "ram": "128 GB", "color": "Green/Graphite/Blue", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 13 pro", "type": "smartphone", "ram": "512 GB", "color": "Green/Silver", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 13 pro", "type": "smartphone", "ram": "256 GB", "color": "Green/Blue", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 13 pro", "type": "smartphone", "ram": "128 GB", "color": "Green/Blue/Silver", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 13", "type": "smartphone", "ram": "128 GB", "color": "Midnight/Starlight", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 13", "type": "smartphone", "ram": "256 GB", "color": "Midnight", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 12", "type": "smartphone", "ram": "256 GB", "color": "Black", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone SE 2", "type": "smartphone", "ram": "256 GB", "color": "RED", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone SE 2", "type": "smartphone", "ram": "256 GB", "color": "Black/White", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 11 pro max", "type": "smartphone", "ram": "256 GB", "color": "Green", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 11 pro max", "type": "smartphone", "ram": "64 GB", "color": "Green/Silver", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 11 pro", "type": "smartphone", "ram": "256 GB", "color": "Gold", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone 11", "type": "smartphone", "ram": "64 GB", "color": "Black/Red", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone XR", "type": "smartphone", "ram": "64 GB", "color": "RED", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iphone XS Max", "type": "smartphone", "ram": "64 GB", "color": "Silver/Gray", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iPad 10", "type": "tablet", "ram": "-", "color": "red", "storage": "64 GB", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "iPad pro 11 M2", "type": "tablet", "ram": "-", "color": "yellow", "storage": "128 GB", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "TV 4K 2nd Gen", "type": "accessories", "ram": "-", "color": "-", "storage": "64 GB", "quantity": "-", "processor": "A12 Bionic", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "Series 7 41MM", "type": "accessories", "ram": "-", "color": "Silver Steel", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }, { "intent": "Sell", "name": "AirTag 4 pack MC", "type": "accessories", "ram": "-", "color": "-", "storage": "-", "quantity": "-", "processor": "-", "condition": "Brand New / Non-active", "brand": "Apple", "price": "AED" }] }
 // ]
 // saveIntents(intents)
 

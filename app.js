@@ -24,7 +24,7 @@ const client = new Client({
 const { setClient, getMessages: getMessages, getMessageObj, getBatchClassifiedMessages } = require('./src/utils/chats');
 const { saveIntents, newMessages, execSql } = require('./db/dbhandler');
 setClient(client)
-const { getExcelPath, getPotentialPairsPath, generateClassifiedMessagesExcel } = require('./db/query2xl');
+const { getExcelPath, generateClassifiedMessagesExcel } = require('./db/query2xl');
 const extractIntent = require('./src/extractIntent');
 
 
@@ -161,7 +161,6 @@ client.on('message', async (message) => {
         }
 
         if (message.body === '%%get_products') {
-
             const excelPath = await getExcelPath()
             const fileData = fs.readFileSync(excelPath);
             const base64String = Buffer.from(fileData).toString('base64');
@@ -171,16 +170,16 @@ client.on('message', async (message) => {
             return;
         }
 
-        if (message.body === '%%get_pairs') {
+        // if (message.body === '%%get_pairs') {
 
-            const excelPath = await getPotentialPairsPath()
-            const fileData = fs.readFileSync(excelPath);
-            const base64String = Buffer.from(fileData).toString('base64');
-            const mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-            const media = new MessageMedia(mimetype, base64String, 'potential_buysell_pairs.xlsx');
-            client.sendMessage(message.from, media, { caption: 'Here is your excel file.' })
-            return;
-        }
+        //     const excelPath = await getPotentialPairsPath()
+        //     const fileData = fs.readFileSync(excelPath);
+        //     const base64String = Buffer.from(fileData).toString('base64');
+        //     const mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        //     const media = new MessageMedia(mimetype, base64String, 'potential_buysell_pairs.xlsx');
+        //     client.sendMessage(message.from, media, { caption: 'Here is your excel file.' })
+        //     return;
+        // }
 
         if (message.body.startsWith('%%exec_sql')) {
             const query = message.body.split(' ').slice(1).join(' ')

@@ -25,34 +25,21 @@ const tableCreateScript = `CREATE TABLE IF NOT EXISTS Chat(
     chatMessageTime TEXT NOT NULL
 ) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS Product (
-    intent TEXT NOT NULL,
     prd_id INTEGER PRIMARY KEY,
     chatId TEXT NOT NULL,
+    intent TEXT NOT NULL,
     name TEXT NOT NULL,
     type TEXT NOT NULL,
+    quantity TEXT NOT NULL,
+    condition TEXT NOT NULL,
+    ram TEXT NOT NULL,
+    color TEXT NOT NULL,
+    storage TEXT NOT NULL,
+    processor TEXT NOT NULL,
+    brand TEXT NOT NULL,
+    price TEXT NOT NULL,
+    remarks TEXT NOT NULL,
     FOREIGN KEY (chatId) REFERENCES Chat(id)
-);
-CREATE TABLE IF NOT EXISTS Variant (
-    variant_id INTEGER PRIMARY KEY,
-    prd_id INTEGER NOT NULL,
-    name TEXT DEFAULT '-',
-    quantity TEXT DEFAULT '-',
-    condition TEXT DEFAULT '-',
-    brand TEXT DEFAULT '-',
-    price TEXT DEFAULT '-',
-    remarks TEXT DEFAULT '-',
-    FOREIGN KEY (prd_id) REFERENCES Product(prd_id)
-);
-CREATE TABLE IF NOT EXISTS Tag (
-    tag_id INTEGER PRIMARY KEY,
-    tag_name TEXT UNIQUE
-);
-CREATE TABLE IF NOT EXISTS TagVariant (
-    variant_id INTEGER NOT NULL,
-    tag_id INTEGER NOT NULL,
-    FOREIGN KEY (variant_id) REFERENCES Variant(variant_id),
-    FOREIGN KEY (tag_id) REFERENCES Tag(tag_id),
-    PRIMARY KEY (variant_id, tag_id)
 );
 CREATE TABLE IF NOT EXISTS PROCESSED_MESSAGES (message_id TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS NEW_MESSAGES (message_body TEXT NOT NULL);

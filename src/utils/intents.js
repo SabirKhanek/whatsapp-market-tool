@@ -6,8 +6,53 @@ const { getGeneralMapping: getGeneralPrdTypeMapping } = require('../generalize')
 const ProgressBar = require('progress');
 const { registerMessageInDB, ifMessageExist } = require('../../db/dbhandler')
 
+function getJSONforIntent(resp) {
+    // Try returning the parsed response as it is
+    try {
+        return JSON.parse(resp)
+    } catch (err) { }
+
+    let tries = 0;
+    let limit = 10;
+    let intent;
+
+    // Panic backtracking
+    if (resp.startsWith('[')) {
+        while (resp.length > 10) {
+            try {
+                intent = JSON.parse(resp)
+                return { products: intent }
+            } catch (err) {
+                tries++;
+                if (tries >= limit) return
+
+                resp = resp.slice(0, resp.lastIndexOf('}') + 1)
+                resp = resp + ']'
+            }
+        }
+    } else {
+        let firstFlag = true
+        while (resp.length > 10) {
+            try {
+                intent = JSON.parse(resp)
+                return { products: intent[Object.keys(intent)[0]] }
+            } catch (err) {
+                tries++;
+                if (tries >= limit) return
+                const indexBound = firstFlag ? resp.lastIndexOf('}') + 1 : resp.slice(0, lastIndexOf('}')).lastIndexOf('}')
+                firstFlag = false
+
+                resp = resp.slice(0, indexBound)
+                resp = resp + ']}'
+            }
+        }
+    }
+
+    return
+}
+
 async function getIntents(messages) {
-    const RETRY_LIMIT = 3;
+    const RETRY_LIMIT = 1;
     const intents = []
     const messagesProcessed = []
     const totalMessages = messages.length;
@@ -71,12 +116,13 @@ async function getIntents(messages) {
             try {
                 const startIndex = resp.indexOf('{')
                 const endIndex = resp.lastIndexOf('}')
-                intent = JSON.parse(resp.substring(startIndex, endIndex + 1))
+                intent = getJSONforIntent(resp.substring(startIndex, endIndex + 1))
                 if (validateIntent.validate(intent).error) {
                     throw new Error('Invalid Intent' + validateIntent.validate(intent).error)
                 }
             } catch (error) {
                 tried++;
+                console.log('Error in getting intent', error.message)
                 if (tried === RETRY_LIMIT - 1) {
                     if (!isServer) {
                         progressBar.interrupt(`Ignoring \"${message.chatMessage.substring(0, 20).replace('\n', ' ')}\" ` + error.message)
@@ -86,6 +132,7 @@ async function getIntents(messages) {
                     progressBarIncrement()
                     break;
                 }
+                progressBarIncrement()
                 continue;
             }
             const intentObj = {
@@ -98,34 +145,34 @@ async function getIntents(messages) {
 
             // intent = intent.map(x => Object.fromEntries(Object.entries(x).map(
             //     ([key, value]) => [key, typeof value == 'string' ? value.toLowerCase() : value])));
-
             intents.push(intentObj)
             progressBarIncrement()
             break;
         }
     })
 
-    // Cleaning Product Types
-    const prodTypes = []
-    if (intents.length > 1) {
-        intents.forEach((intent) => {
-            intent.products.forEach((product) => {
-                if (prodTypes.includes(product.type)) return
-                else prodTypes.push(product.type.toLowerCase())
-            })
-        })
+    // // Cleaning Product Types
+    // const prodTypes = []
+    // if (intents.length > 1) {
+    //     intents.forEach((intent) => {
+    //         intent.products.forEach((product) => {
+    //             if (prodTypes.includes(product.type)) return
+    //             else prodTypes.push(product.type.toLowerCase())
+    //         })
+    //     })
 
-        const prodTypesMapping = await getGeneralPrdTypeMapping(JSON.stringify(prodTypes));
+    //     const prodTypesMapping = await getGeneralPrdTypeMapping(JSON.stringify(prodTypes));
 
-        intents.forEach((intent) => {
-            intent.products.forEach((product) => {
-                if (Object.keys(prodTypesMapping).includes(product.type.toLowerCase())) {
-                    product.type = prodTypesMapping[product.type.toLowerCase()].toLowerCase()
-                }
-            })
-        })
-    }
+    //     intents.forEach((intent) => {
+    //         intent.products.forEach((product) => {
+    //             if (Object.keys(prodTypesMapping).includes(product.type.toLowerCase())) {
+    //                 product.type = prodTypesMapping[product.type.toLowerCase()].toLowerCase()
+    //             }
+    //         })
+    //     })
+    // }
     // // End Cleaning
+
     // // Register the messages in DB
     messagesProcessed.forEach((message) => {
         try {
@@ -139,32 +186,99 @@ async function getIntents(messages) {
 
 // messages = [
 //     {
-//         "chatId": "120363063452915739@g.us",
-//         "chatName": "Test",
-//         "chatType": "Group",
-//         "chatMessage": "WTB Iphone 12 64GB Unlocked (AB stock Kitted)\n\nPlease Let Us Know If you can Use any\n\nThank you",
-//         "chatMessageAuthor": "923412727290@c.us",
-//         "chatMessageTime": 1678522453,
-//         "id": "false_120363063452915739@g.us_6C49342754658138B566ADB4A5BBF81A_923412727290@c.us",
-//         "fromMe": false,
-//         "predictedIntent": 'Buy'
+//         chatId: '923246700564@c.us',
+//         chatName: '+92 324 6700564',
+//         chatType: 'Individual',
+//         chatMessage: 'Want to sell \n' +
+//             '~/ Ready Stock Dubai \n' +
+//             '\n' +
+//             ' ▶️ *IPHONE 24K GOLD PLATING*\n' +
+//             '\n' +
+//             '🔵*D Link DWR - M964G* - 4 units (WiFi Router) \n' +
+//             '\n' +
+//             '🎶*Speakers & Headphone*🎵\n' +
+//             '\n' +
+//             '▶ ️JBL Tune110 Mix \n' +
+//             '▶ ️Marshall Emberton 📻🔈\n' +
+//             '*▶ ️Marshall Emberton ii * 📻🔈\n' +
+//             '▶ ️Marshall WILLEN 📻🔈\n' +
+//             '▶ ️Marshall Killburn ii 📻🔈\n' +
+//             '▶     Marshall Monitor ii ANC 🎧\n' +
+//             '▶ ️Marshall Mid ANC 🎧\n' +
+//             '▶ ️~Marshall Major 4 Black~ \n' +
+//             '*▶ ️Marshall Minor III* \n' +
+//             '\n' +
+//             '📻 🔊Woburn 2 - Black, Brown \n' +
+//             '📻 🔊Stanmore 2  - Black, Brown \n' +
+//             '📻 🔊Acton 2  - Brown, Black\n' +
+//             '📻 🔊Marshall Tufon  - Black \n' +
+//             '\n' +
+//             '📻 🔊Woburn 3 - Black, Cream\n' +
+//             '📻 🔊Stanmore 3 - Black, Brown \n' +
+//             '📻 🔊Acton 3 - Black, Brown \n' +
+//             '\n' +
+//             ' *Samsung *\n' +
+//             '\n' +
+//             '▶️ TA800 25w Adaptor 3 pin UK \n' +
+//             '▶️ TA800 25w Adaptor 2 pin EU\n' +
+//             '▶️ TA800 25W Adaptor with Cable 2 pin EU \n' +
+//             '▶️ TA845 45w Adaptor with Cable 2 pin EU \n' +
+//             '▶️ TA845 45W Adaptor with Cable 3 pin UK \n' +
+//             '▶️ TA200 15w Adaptor with Cable 3 pin UK \n' +
+//             '▶️ Cable C - C (5A, 1 meter) \n' +
+//             '▶️ Cable C - C ( 1 Meter) \n' +
+//             '▶️ IC100 - Samsung Type - C Earphones \n' +
+//             '\n' +
+//             '*Apple*\n' +
+//             '\n' +
+//             '▶️ *~USB-C to Digital AV MUF82*~\n' +
+//             '▶️ iPhone 11 64gb *iCloud Lock*\n' +
+//             '▶️ *iPhone Batteries ALL MODELS*\n' +
+//             '▶ Apple Watch Charger USB \n' +
+//             '▶ Apple Watch Charger USB-C \n' +
+//             '▶ ~*Apple Battery Pack* (Wireless Magnatic) (MJWY3) \n' +
+//             '\n' +
+//             '▶️ Apple Magic Mouse - Ready \n' +
+//             'Silver (MLA02) 2nd Gen🖱️\n' +
+//             'Black (MRME2) 2nd Gen \n' +
+//             '*Silver (MK2E3) 3rd Gen *🖱️\n' +
+//             '*Black (MMMQ3) 3rd Gen* \n' +
+//             '\n' +
+//             '▶️ *Apple 61w USB-C Adaptor 3 pin*\n' +
+//             '▶️ *Apple 96w USB-C Adaptor 3 pin*\n' +
+//             '▶️ Apple 20w 2 pin *USA * (MHJ83) \n' +
+//             '▶️ Apple 20w 2 pin Plug *EU* (MHJE3) \n' +
+//             '▶️ Apple 20w 3 pin Plug *TRA* (MHJF3)\n' +
+//             '▶️ Apple 5w 3 pin (MD812)\n' +
+//             '▶️ Apple MegSafe Charger *Magnatic* (MHXH3) \n' +
+//             '▶️ MNHF2 ( EarPods With 3.5mm Jack) \n' +
+//             '▶️ MMTN2 ( EarPods With Lightning Connector) \n' +
+//             '\n' +
+//             '▶️ MMX62 ( Lightning to 3.5mm Jack) \n' +
+//             '\n' +
+//             '▶️ MR2C2 ( Lightning to 3.5mm Audo Jack cable(1.2m) \n' +
+//             '\n' +
+//             '▶️ MXLY2 / MD818( 1 meter USB with Lightning Cable) \n' +
+//             '\n' +
+//             '▶️ MD819 ( 2 meter USB to Lightning Cable) \n' +
+//             '\n' +
+//             '▶️ MUF72 ( 1 meter Type C to Type C) \n' +
+//             '▶️ MLL82 ( 2 meter Type C to Type C) \n' +
+//             '▶️ MKQ42 ( 2 meter Type C to Lightning Cable ) big box \n' +
+//             '▶️ MX0K2ZE/A  / MMA03 ( 1 meter Type C to Lightning)\n' +
+//             '____________________________________\n' +
+//             '\n' +
+//             '*All Physical Stock Dubai*',
+//         chatMessageAuthor: '+92 324 6700564',
+//         chatMessageTime: 1681486599,
+//         id: 'false_923246700564@c.us_AA35D3459FF0722D1246FE927481ECD9',
+//         fromMe: false,
+//         predictedIntent: 'Sell'
 //     },
-//     {
-//         "chatId": "120363063452915739@g.us",
-//         "chatName": "Test",
-//         "chatType": "Group",
-//         "chatMessage": "WTS: Iphone 8 128GB unlocked (A++)",
-//         "chatMessageAuthor": "923412727290@c.us",
-//         "chatMessageTime": 1678522454,
-//         "id": "false_120363063452915739@g.us_F6B39BCE8E8EE6208BB4D944AD6F9FD7_923412727290@c.us",
-//         "fromMe": false,
-//         "predictedIntent": 'Sell'
-//     }
 // ]
 
-
 // getIntents(messages).then((intents) => {
-//     console.log(JSON.stringify(intents, null, 2))
+//     // console.log(JSON.stringify(intents, null, 2))
 // }).catch((err) => {
 //     console.log(err)
 // })

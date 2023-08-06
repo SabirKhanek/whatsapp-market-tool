@@ -28,7 +28,7 @@ function installPipPackages() {
 require('./src/configurator').config().then(() => {
     require('dotenv').config()
     if (process.env.deployment && process.env.deployment === 'server') {
-        installPipPackages()
+        // installPipPackages()
     }
     require('./app')
 })
